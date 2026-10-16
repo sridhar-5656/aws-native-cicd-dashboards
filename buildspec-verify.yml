@@ -1,0 +1,11 @@
+version: 0.2
+
+# Post-deployment verification. Runs after the ECS deploy action has finished.
+# Required env vars (set by Terraform / CodePipeline): APP_BASE_URL, EXPECTED_IMAGE_TAG
+env:
+  shell: bash
+
+phases:
+  build:
+    commands:
+      - bash scripts/verify-deployment.sh "$APP_BASE_URL" "$EXPECTED_IMAGE_TAG"

@@ -1,0 +1,12 @@
+# Copy to backend.tf ONLY after creating the state bucket (infrastructure/bootstrap) and
+# then run:  terraform init -migrate-state
+# Requires Terraform >= 1.10 for S3-native locking (use_lockfile).
+terraform {
+  backend "s3" {
+    bucket       = "REPLACE_WITH_state_bucket_name_output"
+    key          = "devops-dashboard/main/terraform.tfstate"
+    region       = "REPLACE_WITH_REGION"
+    encrypt      = true
+    use_lockfile = true
+  }
+}

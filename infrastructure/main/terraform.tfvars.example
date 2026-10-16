@@ -1,0 +1,22 @@
+# Copy to terraform.tfvars (git-ignored) and edit. Contains no secrets.
+aws_region                = "us-east-1"
+project_name              = "devops-dashboard"
+environment               = "dev"
+github_full_repository_id = "YOUR-GITHUB-USER/aws-native-cicd-dashboard"
+github_branch             = "main"
+
+# Cheapest learning option. Other values: "nat", "endpoints" (see docs/architecture.md).
+network_profile = "public"
+
+# Smallest practical Fargate size. Valid pairs: 256 CPU -> 512/1024/2048 MiB; 512 CPU -> 1024-4096 MiB.
+task_cpu      = 256
+task_memory   = 512
+desired_count = 1
+
+# Optional: email for alarms/pipeline failures (you must click the SNS confirmation email).
+alarm_email = ""
+# Optional: account-wide monthly budget alert (needs alarm_email). 0 = disabled.
+monthly_budget_usd = 0
+
+# Do NOT set enable_service / initial_image_tag here; pass them on the command line per phase
+# (scripts\deploy.ps1 does this for you).

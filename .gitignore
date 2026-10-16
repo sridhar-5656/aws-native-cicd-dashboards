@@ -1,0 +1,45 @@
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials
+.aws/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node
+node_modules/
+frontend/dist/
+frontend/coverage/
+
+# Test and build reports
+reports/
+imagedefinitions.json
+
+# Terraform (state may contain sensitive data - never commit it)
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+tfplan
+crash.log
+*.auto.tfvars
+terraform.tfvars
+# NOTE: commit .terraform.lock.hcl (it pins provider versions)
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+powershell.cmd
+**/powershell.cmd

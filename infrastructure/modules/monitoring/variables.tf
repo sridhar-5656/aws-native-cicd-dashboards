@@ -1,0 +1,12 @@
+variable "name_prefix" { type = string }
+variable "aws_region" { type = string }
+variable "cluster_name" { type = string }
+variable "service_name" { type = string }
+variable "enable_service" { type = bool }
+variable "enable_pipeline" { type = bool }
+variable "pipeline_name" { type = string }
+variable "alb_arn_suffix" { type = string }
+variable "target_group_arn_suffix" { type = string }
+variable "alarm_email" { type = string }
+variable "cpu_alarm_threshold" { type = number }
+variable "memory_alarm_threshold" { type = number }

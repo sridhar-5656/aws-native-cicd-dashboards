@@ -1,0 +1,80 @@
+version: 0.2
+
+# Required environment variables (set by Terraform on the CodeBuild project / CodePipeline action):
+#   ECR_REPOSITORY_URI  e.g. <account>.dkr.ecr.<region>.amazonaws.com/<repo>
+#   CONTAINER_NAME      container name inside the ECS task definition ("app")
+#   COMMIT_ID           full Git commit SHA (from the CodePipeline source variable)
+# AWS_DEFAULT_REGION is provided by CodeBuild.
+
+env:
+  shell: bash
+  exported-variables:
+    - IMAGE_TAG
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.12
+      nodejs: 20
+    commands:
+      - python --version && node --version && docker --version
+
+  pre_build:
+    commands:
+      # Tag = first 7 characters of the commit SHA (falls back to CodePipeline's resolved version).
+      - export FULL_SHA="${COMMIT_ID:-$CODEBUILD_RESOLVED_SOURCE_VERSION}"
+      - export IMAGE_TAG="${FULL_SHA:0:7}"
+      - test -n "$IMAGE_TAG" || (echo "Could not determine commit SHA" && exit 1)
+      - export APP_VERSION="$(cat VERSION)"
+      - export BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+      - echo "Building version $APP_VERSION as image tag $IMAGE_TAG"
+      - aws ecr get-login-password --region "$AWS_DEFAULT_REGION" | docker login --username AWS --password-stdin "${ECR_REPOSITORY_URI%%/*}"
+
+  # NOTE: post_build still runs when build fails, so nothing is pushed there.
+  # Tests, image build, smoke test and push all happen here, in order; any failure stops the phase.
+  build:
+    commands:
+      - echo "=== 1/4 Backend + frontend tests ==="
+      - bash scripts/local-test.sh --ci
+      - echo "=== 2/4 Docker image build ==="
+      - >
+        docker build
+        --build-arg APP_GIT_COMMIT="$FULL_SHA"
+        --build-arg APP_IMAGE_TAG="$IMAGE_TAG"
+        --build-arg APP_BUILD_TIME="$BUILD_TIME"
+        -t "$ECR_REPOSITORY_URI:$IMAGE_TAG" .
+      - echo "=== 3/4 Container smoke test ==="
+      - bash scripts/smoke-test-container.sh "$ECR_REPOSITORY_URI:$IMAGE_TAG" "$IMAGE_TAG"
+      - echo "=== 4/4 Push image (only reached when everything above passed) ==="
+      - |
+        if aws ecr describe-images --repository-name "${ECR_REPOSITORY_URI#*/}" --image-ids imageTag="$IMAGE_TAG" >/dev/null 2>&1; then
+          echo "Tag $IMAGE_TAG already exists in ECR (immutable tags): skipping push."
+        else
+          docker push "$ECR_REPOSITORY_URI:$IMAGE_TAG"
+        fi
+
+  post_build:
+    commands:
+      - |
+        if [ "$CODEBUILD_BUILD_SUCCEEDING" = "1" ]; then
+          printf '[{"name":"%s","imageUri":"%s"}]' "$CONTAINER_NAME" "$ECR_REPOSITORY_URI:$IMAGE_TAG" > imagedefinitions.json
+          cat imagedefinitions.json
+        else
+          echo "Build failed - no imagedefinitions.json is produced, so the Deploy stage cannot run."
+        fi
+
+reports:
+  backend-tests:
+    files:
+      - backend-junit.xml
+    base-directory: reports
+    file-format: JUNITXML
+  frontend-tests:
+    files:
+      - frontend-junit.xml
+    base-directory: reports
+    file-format: JUNITXML
+
+artifacts:
+  files:
+    - imagedefinitions.json
