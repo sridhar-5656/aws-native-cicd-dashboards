@@ -33,6 +33,9 @@ with CloudWatch logs, metrics and alarms, all provisioned with **Terraform**.
 
 ---
 
+
+### Access the Website: http://localhost:8080/
+
 ## 1. Objective & features
 
 **Objective:** demonstrate end-to-end DevOps skills — CI, CD, containers, IaC, observability, least-privilege
